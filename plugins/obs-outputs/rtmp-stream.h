@@ -31,6 +31,7 @@
 #define OPT_NEWSOCKETLOOP_ENABLED "new_socket_loop_enabled"
 #define OPT_LOWLATENCY_ENABLED "low_latency_mode_enabled"
 #define OPT_METADATA_MULTITRACK "metadata_multitrack"
+#define OPT_PROXY "proxy"
 
 //#define TEST_FRAMEDROPS
 //#define TEST_FRAMEDROPS_WITH_BITRATE_SHORTCUTS
@@ -81,6 +82,7 @@ struct rtmp_stream {
 	struct dstr username, password;
 	struct dstr encoder_name;
 	struct dstr bind_ip;
+	struct dstr proxy;
 	socklen_t addrlen_hint; /* hint IPv4 vs IPv6 */
 
 	/* frame drop variables */

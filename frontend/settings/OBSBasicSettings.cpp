@@ -548,6 +548,7 @@ OBSBasicSettings::OBSBasicSettings(QWidget *parent)
 	HookWidget(ui->confirmOnExit,        CHECK_CHANGED,  ADV_CHANGED);
 	HookWidget(ui->bindToIP,             COMBO_CHANGED,  ADV_CHANGED);
 	HookWidget(ui->ipFamily,             COMBO_CHANGED,  ADV_CHANGED);
+	HookWidget(ui->proxy,                EDIT_CHANGED,   ADV_CHANGED);
 	HookWidget(ui->enableNewSocketLoop,  CHECK_CHANGED,  ADV_CHANGED);
 	HookWidget(ui->enableLowLatencyMode, CHECK_CHANGED,  ADV_CHANGED);
 	HookWidget(ui->hotkeyFocusType,      COMBO_CHANGED,  ADV_CHANGED);
@@ -2583,6 +2584,9 @@ void OBSBasicSettings::LoadAdvancedSettings()
 	if (!SetComboByValue(ui->bindToIP, bindIP))
 		SetInvalidValue(ui->bindToIP, bindIP, bindIP);
 
+	const char *proxy = config_get_string(main->Config(), "Output", "Proxy");
+	ui->proxy->setText(proxy ? proxy : "");
+
 	if (obs_video_active()) {
 		ui->advancedVideoContainer->setEnabled(false);
 	}
@@ -3214,6 +3218,7 @@ void OBSBasicSettings::SaveAdvancedSettings()
 	SaveSpinBox(ui->reconnectMaxRetries, "Output", "MaxRetries");
 	SaveComboData(ui->bindToIP, "Output", "BindIP");
 	SaveComboData(ui->ipFamily, "Output", "IPFamily");
+	config_set_string(main->Config(), "Output", "Proxy", QT_TO_UTF8(ui->proxy->text()));
 	SaveCheckBox(ui->autoRemux, "Video", "AutoRemux");
 	SaveCheckBox(ui->dynBitrate, "Output", "DynamicBitrate");
 
@@ -5586,6 +5591,8 @@ void OBSBasicSettings::UpdateAdvNetworkGroup()
 	ui->dynBitrate->setVisible(enabled);
 	ui->ipFamilyLabel->setVisible(enabled);
 	ui->ipFamily->setVisible(enabled);
+	ui->proxyLabel->setVisible(enabled);
+	ui->proxy->setVisible(enabled);
 #ifdef _WIN32
 	ui->enableNewSocketLoop->setVisible(enabled);
 	ui->enableLowLatencyMode->setVisible(enabled);

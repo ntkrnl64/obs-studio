@@ -127,6 +127,7 @@ static void rtmp_stream_destroy(void *data)
 	dstr_free(&stream->password);
 	dstr_free(&stream->encoder_name);
 	dstr_free(&stream->bind_ip);
+	dstr_free(&stream->proxy);
 	os_event_destroy(stream->stop_event);
 	os_sem_destroy(stream->send_sem);
 	pthread_mutex_destroy(&stream->packets_mutex);
@@ -1170,8 +1171,9 @@ static int try_connect(struct rtmp_stream *stream)
 
 	info("Connecting to RTMP URL %s...", stream->path.array);
 
-	// free any existing RTMP TLS context
+	// free any existing RTMP TLS context and proxy hostname allocation
 	RTMP_TLS_Free(&stream->rtmp);
+	bfree(stream->rtmp.Link.sockshost.av_val);
 
 	RTMP_Init(&stream->rtmp);
 
@@ -1202,6 +1204,29 @@ static int try_connect(struct rtmp_stream *stream)
 	// Only use the IPv4 / IPv6 hint if a binding address isn't specified.
 	if (stream->rtmp.m_bindIP.addrLen == 0)
 		stream->rtmp.m_bindIP.addrLen = stream->addrlen_hint;
+
+	if (!dstr_is_empty(&stream->proxy)) {
+		const char *proxy_str = stream->proxy.array;
+		const char *colon = strrchr(proxy_str, ':');
+		if (colon) {
+			size_t host_len = colon - proxy_str;
+			char *proxy_host = bmemdup(proxy_str, host_len + 1);
+			proxy_host[host_len] = '\0';
+			stream->rtmp.Link.sockshost.av_val = proxy_host;
+			stream->rtmp.Link.sockshost.av_len = (int)host_len;
+			stream->rtmp.Link.socksport = (unsigned short)atoi(colon + 1);
+		} else {
+			stream->rtmp.Link.sockshost.av_val = bstrdup(proxy_str);
+			stream->rtmp.Link.sockshost.av_len = (int)stream->proxy.len;
+			stream->rtmp.Link.socksport = 1080;
+		}
+		info("Using SOCKS5 proxy: %s:%d", stream->rtmp.Link.sockshost.av_val,
+		     stream->rtmp.Link.socksport);
+	} else {
+		stream->rtmp.Link.sockshost.av_val = NULL;
+		stream->rtmp.Link.sockshost.av_len = 0;
+		stream->rtmp.Link.socksport = 0;
+	}
 
 	RTMP_AddStream(&stream->rtmp, stream->key.array);
 
@@ -1323,6 +1348,8 @@ static bool init_connect(struct rtmp_stream *stream)
 
 	bind_ip = obs_data_get_string(settings, OPT_BIND_IP);
 	dstr_copy(&stream->bind_ip, bind_ip);
+
+	dstr_copy(&stream->proxy, obs_data_get_string(settings, OPT_PROXY));
 
 	// Check that we have an IP Family set and that the setting length
 	// is 4 characters long so we don't capture ie. IPv4+IPv6
@@ -1720,6 +1747,7 @@ static void rtmp_stream_defaults(obs_data_t *defaults)
 	obs_data_set_default_int(defaults, OPT_PFRAME_DROP_THRESHOLD, 900);
 	obs_data_set_default_int(defaults, OPT_MAX_SHUTDOWN_TIME_SEC, 30);
 	obs_data_set_default_string(defaults, OPT_BIND_IP, "default");
+	obs_data_set_default_string(defaults, OPT_PROXY, "");
 #ifdef _WIN32
 	obs_data_set_default_bool(defaults, OPT_NEWSOCKETLOOP_ENABLED, false);
 	obs_data_set_default_bool(defaults, OPT_LOWLATENCY_ENABLED, false);

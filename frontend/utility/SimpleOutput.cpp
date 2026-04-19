@@ -690,6 +690,7 @@ bool SimpleOutput::StartStreaming(obs_service_t *service)
 	bool preserveDelay = config_get_bool(main->Config(), "Output", "DelayPreserve");
 	const char *bindIP = config_get_string(main->Config(), "Output", "BindIP");
 	const char *ipFamily = config_get_string(main->Config(), "Output", "IPFamily");
+	const char *proxy = config_get_string(main->Config(), "Output", "Proxy");
 #ifdef _WIN32
 	bool enableNewSocketLoop = config_get_bool(main->Config(), "Output", "NewSocketLoopEnable");
 	bool enableLowLatencyMode = config_get_bool(main->Config(), "Output", "LowLatencyEnable");
@@ -705,6 +706,7 @@ bool SimpleOutput::StartStreaming(obs_service_t *service)
 	OBSDataAutoRelease settings = obs_data_create();
 	obs_data_set_string(settings, "bind_ip", bindIP);
 	obs_data_set_string(settings, "ip_family", ipFamily);
+	obs_data_set_string(settings, "proxy", proxy);
 #ifdef _WIN32
 	obs_data_set_bool(settings, "new_socket_loop_enabled", enableNewSocketLoop);
 	obs_data_set_bool(settings, "low_latency_mode_enabled", enableLowLatencyMode);
